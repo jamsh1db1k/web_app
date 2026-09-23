@@ -102,7 +102,7 @@
       <div class="balance-value" id="balanceValue">0 so'm</div>
     </div>
 
-    <div class="ad-slot-label">📍 Reklama joyi: shu tugma</div>
+    <div class="ad-slot-label">📍 Kirishda: avtomatik reklama (pulsiz) · Tugmada: mukofotli reklama</div>
     <button id="watchBtn">🎬 Reklamani ko'rish (mukofot uchun)</button>
     <div id="status"></div>
 
@@ -136,6 +136,10 @@
   // va localStorage'dan emas, shu yerdan to'g'ridan-to'g'ri olinadi —
   // shunda moderator qaysi blok ishlatilayotganini aniq ko'ra oladi.
   var REWARD_BLOCK_ID = "49359";
+
+  // Kirishda avtomatik ko'rsatiladigan (pulsiz) Interstitial blok.
+  // Interstitial ID doim "int-xxx" formatida bo'ladi — bu to'g'ri.
+  var INTERSTITIAL_BLOCK_ID = "int-49360";
 
   // Faqat mukofot miqdori admin panel orqali sozlanadi (bu reklama joylashuviga ta'sir qilmaydi)
   var REWARD_AMOUNT = parseInt(localStorage.getItem("REWARD_AMOUNT") || "100");
