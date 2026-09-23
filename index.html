@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Reklama ko'rib pul ishlash</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://sad.adsgram.ai/js/sad.min.js"></script>
+<style>
+  :root{
+    --bg-0:#04050c;
+    --gold:#ffc400;
+    --gold-soft:#ffd54f;
+    --card:rgba(255,196,0,0.08);
+    --border:rgba(255,196,0,0.25);
+    --text:#fff6e0;
+    --text-dim:#b8ac8a;
+    --danger:#ff5c7a;
+    --success:#7CFFB2;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100%;min-height:100dvh;background:var(--bg-0);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:var(--text);}
+  .wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;
+    min-height:100dvh;padding:24px;text-align:center;}
+  h1{font-size:20px;margin:0 0 6px;}
+  .sub{color:var(--text-dim);font-size:13px;margin:0 0 26px;max-width:280px;line-height:1.5;}
+  .balance-card{background:var(--card);border:1px solid var(--border);border-radius:20px;
+    padding:22px 30px;margin-bottom:32px;min-width:220px;}
+  .balance-label{font-size:12px;color:var(--text-dim);margin-bottom:6px;}
+  .balance-value{font-size:32px;font-weight:700;color:var(--gold-soft);}
+  .ad-slot-label{font-size:11px;color:var(--text-dim);margin-bottom:10px;opacity:.8;}
+  #watchBtn, .admin-save-btn{
+    background:linear-gradient(135deg,var(--gold),#ff9800);
+    color:#1a1200;border:none;border-radius:18px;
+    padding:18px 36px;font-size:17px;font-weight:700;
+    box-shadow:0 8px 24px rgba(255,196,0,0.35);
+    cursor:pointer;transition:transform .15s ease,opacity .15s ease;
+  }
+  #watchBtn:active, .admin-save-btn:active{transform:scale(0.96);}
+  #watchBtn:disabled{opacity:.5;cursor:not-allowed;}
+  #status{min-height:22px;margin-top:16px;font-size:13px;color:var(--text-dim);}
+  .status-ok{color:var(--success) !important;}
+  .status-err{color:var(--danger) !important;}
+
+  /* Admin Panel uslublari */
+  #adminBtn{
+    display:none;
+    margin-top:20px;
+    background:transparent;
+    border:1px solid var(--border);
+    color:var(--gold-soft);
+    padding:8px 16px;
+    border-radius:12px;
+    font-size:13px;
+    cursor:pointer;
+  }
+  .modal{
+    display:none;
+    position:fixed;
+    top:0;left:0;width:100%;height:100%;
+    background:rgba(0,0,0,0.85);
+    backdrop-filter:blur(5px);
+    align-items:center;
+    justify-content:center;
+    z-index:1000;
+  }
+  .modal-content{
+    background: #0d0f1d;
+    border:1px solid var(--border);
+    border-radius:20px;
+    padding:24px;
+    width:90%;
+    max-width:360px;
+    text-align:left;
+  }
+  .modal-content h2{font-size:18px;margin-top:0;margin-bottom:16px;color:var(--gold);}
+  .form-group{margin-bottom:14px;}
+  .form-group label{display:block;font-size:12px;color:var(--text-dim);margin-bottom:6px;}
+  .form-group input{
+    width:100%;
+    padding:10px 14px;
+    background:rgba(255,255,255,0.05);
+    border:1px solid var(--border);
+    border-radius:10px;
+    color:var(--text);
+    font-size:14px;
+    outline:none;
+  }
+  .modal-actions{display:flex;gap:10px;margin-top:20px;}
+  .modal-actions button{flex:1;padding:12px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;}
+  .btn-close{background:transparent;border:1px solid var(--border);color:var(--text-dim);}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>💰 Reklama ko'rib pul ishlang</h1>
+    <p class="sub">Bepul foydalanishingiz mumkin. Qo'shimcha pul ishlash uchun pastdagi tugmani bosing — to'liq ekranli reklama ko'rsatiladi, oxirigacha ko'rilsa balansingizga pul qo'shiladi.</p>
+
+    <div class="balance-card">
+      <div class="balance-label">Balans</div>
+      <div class="balance-value" id="balanceValue">0 so'm</div>
+    </div>
+
+    <div class="ad-slot-label">📍 Reklama joyi: shu tugma</div>
+    <button id="watchBtn">🎬 Reklamani ko'rish (mukofot uchun)</button>
+    <div id="status"></div>
+
+    <!-- Admin Paneli ochish tugmasi -->
+    <button id="adminBtn">⚙️ Admin Panel</button>
+  </div>
+
+  <!-- Admin Panel Modal Oynasi -->
+  <div class="modal" id="adminModal">
+    <div class="modal-content">
+      <h2>⚙️ Admin Panel</h2>
+      <div class="form-group">
+        <label>1 ta reklama narxi (so'mda):</label>
+        <input type="number" id="inputRewardAmount">
+      </div>
+      <div class="modal-actions">
+        <button class="btn-close" id="closeAdminBtn">Yopish</button>
+        <button class="admin-save-btn" id="saveAdminBtn">Saqlash</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // Sizning Telegram ID'ingiz (Admin panelni ko'rish uchun):
+  var ADMIN_TELEGRAM_ID = "7624660348"; // <-- SHU YERGA O'Z TELEGRAM ID-INGIZNI YOZING
+
+  // ⚠️ ENG MUHIM QATOR ⚠️
+  // Bu yerga partner.adsgram.ai dagi platformangizda yaratilgan
+  // Reward turidagi blokning HAQIQIY Block ID'sini yozing.
+  // U faqat raqamlardan iborat bo'ladi (masalan "1234"), "int-" kabi prefiks bo'lmaydi
+  // va localStorage'dan emas, shu yerdan to'g'ridan-to'g'ri olinadi —
+  // shunda moderator qaysi blok ishlatilayotganini aniq ko'ra oladi.
+  var REWARD_BLOCK_ID = "49359";
+
+  // Faqat mukofot miqdori admin panel orqali sozlanadi (bu reklama joylashuviga ta'sir qilmaydi)
+  var REWARD_AMOUNT = parseInt(localStorage.getItem("REWARD_AMOUNT") || "100");
+
+  if (window.Telegram && window.Telegram.WebApp) {
+    Telegram.WebApp.ready();
+    Telegram.WebApp.expand();
+  }
+
+  // Adminlikni tekshirish
+  var userTgId = "";
+  if (window.Telegram && window.Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) {
+    userTgId = String(Telegram.WebApp.initDataUnsafe.user.id);
+  }
+
+  var adminBtn = document.getElementById("adminBtn");
+  var adminModal = document.getElementById("adminModal");
+  var closeAdminBtn = document.getElementById("closeAdminBtn");
+  var saveAdminBtn = document.getElementById("saveAdminBtn");
+  var inputRewardAmount = document.getElementById("inputRewardAmount");
+
+  var btn = document.getElementById("watchBtn");
+  var statusEl = document.getElementById("status");
+  var balanceEl = document.getElementById("balanceValue");
+
+  // LocalStorage'dan balansni olish
+  var currentBalance = parseInt(localStorage.getItem("user_balance") || "0");
+  renderBalance(currentBalance);
+
+  // Admin bo'lsa tugmani ko'rsatish
+  if (userTgId === ADMIN_TELEGRAM_ID) {
+    adminBtn.style.display = "inline-block";
+  }
+
+  // Admin Panel Modal Boshqaruvi
+  adminBtn.addEventListener("click", function(){
+    inputRewardAmount.value = REWARD_AMOUNT;
+    adminModal.style.display = "flex";
+  });
+
+  closeAdminBtn.addEventListener("click", function(){
+    adminModal.style.display = "none";
+  });
+
+  saveAdminBtn.addEventListener("click", function(){
+    var newReward = inputRewardAmount.value.trim();
+    if(newReward) {
+      REWARD_AMOUNT = parseInt(newReward);
+      localStorage.setItem("REWARD_AMOUNT", newReward);
+    }
+    alert("Sozlamalar saqlandi!");
+    adminModal.style.display = "none";
+  });
+
+  function setStatus(text, type){
+    statusEl.textContent = text;
+    statusEl.className = type ? ("status-" + type) : "";
+  }
+
+  function renderBalance(value){
+    balanceEl.textContent = Number(value || 0).toLocaleString("uz-UZ") + " so'm";
+  }
+
+  // Bitta, aniq joylashgan Reward blok — moderator buni "🎬 Reklamani ko'rish"
+  // tugmasini bosish orqali darhol topib, tekshira oladi.
+  // debug:true PARAMETRINI ISHLAB CHIQARISHDA (production) HECH QACHON QOLDIRMANG —
+  // aks holda moderator faqat test bannerini ko'radi va bloki tasdiqlay olmaydi.
+  var RewardAd = window.Adsgram ? window.Adsgram.init({ blockId: REWARD_BLOCK_ID }) : null;
+
+  btn.addEventListener("click", function(){
+    if (!RewardAd) {
+      setStatus("Adsgram yuklanmadi. Internetni tekshiring.", "err");
+      return;
+    }
+
+    btn.disabled = true;
+    setStatus("Reklama yuklanmoqda...");
+
+    RewardAd.show().then(function(){
+      // Reklama muvaffaqiyatli oxirigacha ko'rilganda:
+      currentBalance += REWARD_AMOUNT;
+      localStorage.setItem("user_balance", currentBalance);
+
+      renderBalance(currentBalance);
+      setStatus("＋" + REWARD_AMOUNT + " so'm balansingizga qo'shildi! ✅", "ok");
+    }).catch(function(err){
+      setStatus("Reklama ko'rilmadi yoki yopib qo'yildi.", "err");
+    }).finally(function(){
+      btn.disabled = false;
+    });
+  });
+</script>
+</body>
+</html>
